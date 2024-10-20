@@ -14,7 +14,6 @@ public class VolumetricCloud : VolumeComponent, IPostProcessComponent
     public FloatParameter density = new FloatParameter(0); 
     public Vector3Parameter sigmaAbsorption = new Vector3Parameter(Vector3.zero);
     public Vector3Parameter sigmaScattering = new Vector3Parameter(Vector3.one);
-    public FloatParameter lightIntensity = new FloatParameter(1);
     public ClampedFloatParameter transmission = new ClampedFloatParameter(0.8f, 0, 1);
     public ClampedFloatParameter reflection = new ClampedFloatParameter(0.5f, 0, 1);
     public ClampedFloatParameter attenuation = new ClampedFloatParameter(0.5f, 0, 1);

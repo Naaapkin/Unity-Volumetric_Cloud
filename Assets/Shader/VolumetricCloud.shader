@@ -11,7 +11,6 @@ Shader "Addition/Post-processing/VolumetricCloud_"
         _Density("Density", Range(0, 1)) = 0.1
         _SigmaAbsorption("Sigma Absorption", Vector) = (0, 0, 0)
         _SigmaScattering("Sigma Scattering", Vector) = (1, 1, 1)
-        _LightIntensity("Light Intensity", Float) = 1
         _Transmission("Transmission", Range(0, 1)) = 1
         _Reflection("Reflection", Range(0, 1)) = 0
         _Attenuation("Attenuation", Range(0, 1)) = 0.5
@@ -56,7 +55,6 @@ Shader "Addition/Post-processing/VolumetricCloud_"
             float _Density;
             float3 _SigmaAbsorption;
             float3 _SigmaScattering;
-            float _LightIntensity;
             float _Transmission;
             float _Reflection;
             float _Attenuation;
@@ -113,31 +111,21 @@ Shader "Addition/Post-processing/VolumetricCloud_"
             }
 
             // Henyey-Greenstein phase function: 描述云层边缘的散射方向
-            float HenyeyGreenstein(float cosTheta, float g)
+            float BiHenyeyGreenstein(float2 cosTheta, float2 g)
             {
-                float g2 = g * g;
-                float base = abs(1 + g2 - 2 * g * cosTheta);
-                return 0.079577475 * (1 - g2) / (sqrt(base) * base);
+                float2 g2 = g * g;
+                float2 base = abs(1 + g2 - 2 * g * cosTheta);
+                float2 phases = (1 - g2) / (sqrt(base) * base);
+                return 0.079577475 * lerp(phases.x, phases.y, 0.7);
             }
             
-            float3 MultipleOctaveScattering (float3 extinction, float DOT)
+            float3 MultipleOctaveScattering (float3 extinction, float4 attenuations, float4 phases)
             {
-                float3 lum;
-                float a = 1;
-                float b = 1;
-                float c = 1;
-                for (int i = 0; i < 4; i++)
-                {
-                    lum += b * lerp(HenyeyGreenstein(DOT, c * _Transmission), HenyeyGreenstein(DOT, c * (_Reflection - 1)), 0.7)
-                        * exp(-extinction * a);
-                    a *= _Attenuation;
-                    b *= _Contribution;
-                    c *= _PhaseAttenuation;
-                }
-                return lum;
+                return exp(-extinction) * phases.x + exp(-extinction * attenuations.x) * phases.y +
+                    exp(-extinction * attenuations.y) * phases.z + exp(-extinction * attenuations.z) * phases.w;
             }
 
-            float3 LightRay(float3 p, float DOT, float3 sigma, float3 lightDir, int stepCount)
+            float3 LightPathDensity(float3 p, float3 lightDir, int stepCount)
             {
                 float tmax = abs(AABBRayIntersect(p, lightDir, _BoxMin, _BoxMax)).y;
                 float stepSize = max(_MinStepSize, tmax / stepCount);
@@ -148,7 +136,24 @@ Shader "Addition/Post-processing/VolumetricCloud_"
                 {
                     totalDensity += dD * SampleAtmosphere(p + j * lightDir);
                 }
-                return MultipleOctaveScattering(totalDensity * sigma, DOT);
+                return totalDensity;
+            }
+
+            float4 CalcOctavePhases(float DOT)
+            {
+                float cont = _Contribution;
+                float2 r_t = float2(1 - _Reflection, _Transmission);
+                float phase1 = BiHenyeyGreenstein(DOT, r_t);
+                r_t *= _PhaseAttenuation;
+                cont *= _Contribution;
+                float phase2 = BiHenyeyGreenstein(DOT, r_t) * cont;
+                r_t *= _PhaseAttenuation;
+                cont *= _Contribution;
+                float phase3 = BiHenyeyGreenstein(DOT, r_t) * cont;
+                r_t *= _PhaseAttenuation;
+                cont *= _Contribution;
+                float phase4 = BiHenyeyGreenstein(DOT, r_t) * cont;
+                return float4(phase1, phase2, phase3, phase4) * _Exposure;
             }
 
             float4 frag (FragInfo i) : SV_Target
@@ -175,13 +180,13 @@ Shader "Addition/Post-processing/VolumetricCloud_"
                 float stepSize = max(_MinStepSize, rayLength / _StepCount);
                 float offset = SAMPLE_TEXTURE2D(_BlueNoiseTex, sampler_BlueNoiseTex, i.texcoord).r * stepSize;
                 float3 rayPos = _WorldSpaceCameraPos.xyz + (intersections.x + offset) * dir;
-                float DOT = dot(dir, _MainLightPosition.xyz);
-                float phase = lerp(HenyeyGreenstein(DOT, -_Reflection + 1), HenyeyGreenstein(DOT, _Transmission), 0.7);
-                float dD = stepSize * _Density;
+                float4 phases = CalcOctavePhases(dot(dir, _MainLightPosition.xyz));
+                float4 attenuations = float4(1, _Attenuation, _Attenuation * _Attenuation, 0);
+                attenuations.w = attenuations.y * attenuations.z;
                 float3 lightAttenuation = 1;
                 float3 totalLightPower = 0;
-                float3 sunLight = _MainLightColor.xyz * _LightIntensity;
                 dir *= stepSize;
+                float dD = stepSize * _Density;
                 for (float j = 0; j < rayLength; j += stepSize)
                 {
                     rayPos += dir;
@@ -198,12 +203,14 @@ Shader "Addition/Post-processing/VolumetricCloud_"
 
                         float4 shadowCoord = TransformWorldToShadowCoord(rayPos);
                         float shadow = MainLightRealtimeShadow(shadowCoord);
-                        float3 lightPower = LightRay(rayPos, DOT, sigmaExtinction, _MainLightPosition.xyz, _LightSampleCount) * shadow
-                        * sunLight * phase * _SigmaScattering / sigmaExtinction;
+                        float lightPathDensity = LightPathDensity(rayPos, _MainLightPosition.xyz, _LightSampleCount);
+                        float3 lightPower = MultipleOctaveScattering(lightPathDensity * sigmaExtinction, attenuations, phases)
+                            * shadow;
                         totalLightPower += lightAttenuation * (lightPower - lightPower * attenuation); 
                     }
                 }
-                return float4(color * lightAttenuation + _Exposure * totalLightPower, 1);
+                totalLightPower *= _MainLightColor.xyz * _SigmaScattering / sigmaExtinction;
+                return float4(color * lightAttenuation + totalLightPower, 1);
             }
             ENDHLSL
         }

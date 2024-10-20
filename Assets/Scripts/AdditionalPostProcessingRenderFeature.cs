@@ -55,7 +55,6 @@ public class AdditionalPostProcessingRenderFeature : ScriptableRendererFeature
         private static readonly int density = Shader.PropertyToID("_Density");
         private static readonly int sigmaAbsorption = Shader.PropertyToID("_SigmaAbsorption");
         private static readonly int sigmaScattering = Shader.PropertyToID("_SigmaScattering");
-        private static readonly int lightIntensity = Shader.PropertyToID("_LightIntensity");
         private static readonly int transmission = Shader.PropertyToID("_Transmission");
         private static readonly int reflection = Shader.PropertyToID("_Reflection");
         private static readonly int attenuation = Shader.PropertyToID("_Attenuation");
@@ -148,7 +147,6 @@ public class AdditionalPostProcessingRenderFeature : ScriptableRendererFeature
             volumetricFogMat.SetFloat(density, volumetricCloud.density.value);
             volumetricFogMat.SetVector(sigmaAbsorption, volumetricCloud.sigmaAbsorption.value);
             volumetricFogMat.SetVector(sigmaScattering, volumetricCloud.sigmaScattering.value);
-            volumetricFogMat.SetFloat(lightIntensity, volumetricCloud.lightIntensity.value);
             volumetricFogMat.SetFloat(transmission, volumetricCloud.transmission.value);
             volumetricFogMat.SetFloat(reflection, volumetricCloud.reflection.value);
             volumetricFogMat.SetFloat(attenuation, volumetricCloud.attenuation.value);
