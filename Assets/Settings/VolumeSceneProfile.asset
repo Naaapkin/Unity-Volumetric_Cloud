@@ -96,34 +96,31 @@ MonoBehaviour:
     m_Value: {x: 1500, y: 350, z: 1500}
   density:
     m_OverrideState: 1
-    m_Value: 0.04
+    m_Value: 0.1
   sigmaAbsorption:
     m_OverrideState: 1
     m_Value: {x: 0, y: 0, z: 0}
   sigmaScattering:
     m_OverrideState: 1
     m_Value: {x: 1, y: 1, z: 0.9}
-  lightIntensity:
-    m_OverrideState: 1
-    m_Value: 1
   transmission:
     m_OverrideState: 1
-    m_Value: 0.258
+    m_Value: 0.269
   reflection:
     m_OverrideState: 1
-    m_Value: 0.916
+    m_Value: 0.612
   attenuation:
     m_OverrideState: 1
-    m_Value: 0.201
+    m_Value: 0.504
   contribution:
     m_OverrideState: 1
-    m_Value: 0.599
+    m_Value: 0.869
   phaseAttenuation:
     m_OverrideState: 1
-    m_Value: 0.5
+    m_Value: 0.391
   exposure:
     m_OverrideState: 1
-    m_Value: 60
+    m_Value: 4
   blueNoiseTexture:
     m_OverrideState: 1
     m_Value: {fileID: 2800000, guid: fd931c14bc0cca5429b291d014677606, type: 3}
@@ -233,9 +230,6 @@ MonoBehaviour:
   sigmaScattering:
     m_OverrideState: 0
     m_Value: {x: 1, y: 1, z: 1}
-  lightIntensity:
-    m_OverrideState: 0
-    m_Value: 1
   transmission:
     m_OverrideState: 0
     m_Value: 0.8
