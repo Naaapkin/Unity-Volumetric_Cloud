@@ -47,6 +47,7 @@ Shader "Addition/Post-processing/VolumetricCloud_"
             SAMPLER(sampler_NoiseTex);
             TEXTURE2D(_BlueNoiseTex);
             SAMPLER(sampler_BlueNoiseTex);
+            CBUFFER_START(UnityPerMaterial)
             float4 _BlueNoiseTex_ST;
             float3 _BoxMin;
             float3 _BoxMax;
@@ -66,6 +67,7 @@ Shader "Addition/Post-processing/VolumetricCloud_"
             float _MinStepSize;
             float _CloudBottom;
             float _EdgeFadeThreshold;
+            CBUFFER_END
 
             struct VertexInfo
             {
